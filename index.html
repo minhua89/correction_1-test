@@ -231,8 +231,17 @@
                 return;
             }
 
-            const questionsToTake = validQuestions.length === 1 ? 1 : 2;
-            quizQuestions = shuffleArray(validQuestions).slice(0, questionsToTake);
+            // 根據有效的題數決定測驗題目
+            let questionsForQuiz = [];
+            if (validQuestions.length === 1) {
+                // 如果只有一題，就直接考那一題
+                questionsForQuiz = validQuestions;
+            } else {
+                // 如果大於等於兩題，隨機抽出兩題
+                questionsForQuiz = shuffleArray(validQuestions).slice(0, 2);
+            }
+            
+            quizQuestions = questionsForQuiz;
             userAnswers = {};
             
             homePage.classList.add('hidden');
