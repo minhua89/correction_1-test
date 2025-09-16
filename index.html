@@ -94,12 +94,14 @@
                         <option value="1">第 1 回</option>
                         <option value="2">第 2 回</option>
                         <option value="3">第 3 回</option>
-                        <!-- 可以在這裡繼續新增到14回 -->
                     </select>
                 </div>
                  <div>
-                    <label for="wrongQuestions" class="text-lg font-semibold text-gray-700 mb-2 block">輸入錯誤的題號 (用逗號分隔)</label>
-                    <input type="text" id="wrongQuestions" class="input-macaron" placeholder="例如：1, 5, 8">
+                    <label for="wrongQuestions" class="text-lg font-semibold text-gray-700 mb-2 block">
+                        輸入要訂正的題目編號 (用逗號分隔)<br>
+                        <span class="text-sm text-gray-500">單選/多選: 1, 2... | 填充: A, B... | 混合: 四.1...</span>
+                    </label>
+                    <input type="text" id="wrongQuestions" class="input-macaron" placeholder="例如：1, 5, A, 四.1">
                 </div>
             </div>
 
@@ -116,21 +118,18 @@
                 <div id="timer" class="text-2xl font-bold text-red-500 bg-macaron-pink px-4 py-2 rounded-lg">10:00</div>
             </div>
             
-            <div id="question-container" class="mb-8">
-                <p id="question-text" class="text-2xl font-semibold mb-6 text-gray-800"></p>
-                <div id="options-container"></div>
+            <div id="quiz-questions-container" class="space-y-10 mb-8">
+                <!-- 題目將會動態插入這裡 -->
             </div>
 
-            <div class="flex flex-col md:flex-row justify-between items-center">
+            <div class="flex flex-col md:flex-row justify-between items-center mt-8 border-t-2 pt-6 border-gray-200">
                 <div class="mb-4 md:mb-0">
                     <label for="upload-work" class="btn-macaron bg-macaron-green text-white hover:bg-green-400">拍照上傳作答過程</label>
                     <input type="file" id="upload-work" class="hidden" accept="image/*">
                     <span id="upload-status" class="ml-4 text-gray-600">尚未上傳</span>
                 </div>
                 <div>
-                    <button id="prev-btn" class="btn-macaron mr-4">上一題</button>
-                    <button id="next-btn" class="btn-macaron">下一題</button>
-                    <button id="submit-btn" class="btn-macaron bg-red-500 hover:bg-red-600 hidden ml-4">繳交</button>
+                    <button id="submit-btn" class="btn-macaron bg-red-500 hover:bg-red-600">確認繳交</button>
                 </div>
             </div>
         </div>
@@ -155,80 +154,51 @@
                 </svg>
             </div>
              <p id="submit-success-message" class="hidden text-green-600 text-center mt-4 font-bold">作答紀錄已成功上傳！</p>
-
         </div>
     </div>
 
     <script>
+        // 題庫範例：key是章節，value是該章節所有題目的物件
+        // 物件的 key 是學生輸入的題號 (1, 2, A, B...)
         const questionBank = {
-            '1': [
-                {
-                    id: 1,
-                    question: "已知 π 為圓周率，則與 √(10 + √10π) 最接近的整數為下列哪一個選項？",
-                    options: ["3", "4", "5", "6", "7"],
-                    answer: "4"
-                },
-                {
-                    id: 2,
-                    question: "已知 n 為正整數，若有理數 15/n 可化為有限小數且滿足 1/4 ≤ 15/n ≤ 1/3，試求這樣的 n 值個數為下列哪一個選項？",
-                    options: ["1個", "2個", "3個", "4個", "5個"],
-                    answer: "3個"
-                },
-                {
-                    id: 3,
-                    question: "已知 a = √5 - √2, b = √6 - √3, c = √2，試比較 a, b, c 的大小關係為下列哪一個選項？",
-                    options: ["a>b>c", "a>c>b", "b>c>a", "c>a>b", "c>b>a"],
-                    answer: "c>a>b"
-                },
-                 {
-                    id: 4,
-                    question: "試問下列各選項中的數，哪些是有理數？",
-                    options: ["0.9̄", "1/π", "-√3/√12", "0", "0.1010010001..."],
-                    answer: ["0.9̄", "-√3/√12", "0"] // 這是多選題的範例，但我們這裡當單選處理
-                }
-            ],
-            '2': [
-                {
-                    id: 1,
-                    question: "試求 √(12+√95) - √(12-√95) 的正整數個數為下列哪一個選項?",
-                    options: ["3個", "4個", "5個", "6個", "7個"],
-                    answer: "3個"
-                },
-                {
-                    id: 2,
-                    question: "利用乘法公式計算 7x9x(8²+1)(8⁴+1)(8⁸+1) = 2ⁿ-1，其中n為正整數，則n之值為下列哪一個選項？",
-                    options: ["16", "24", "36", "48", "96"],
-                    answer: "48"
-                }
-            ],
-             '3': [
-                {
-                    id: 1,
-                    question: "將 x=√1234567 以科學記號表示為 x=a×10ⁿ，其中 1≤a<10，n為整數，試求n之值為下列哪一個選項？",
-                    options: ["1", "2", "3", "4", "6"],
-                    answer: "3"
-                },
-                {
-                    id: 2,
-                    question: "若在計算器中鍵入某正整數N，接著連按『√』鍵(取正平方根)3次，視窗顯示得到答案是4，則N等於下列哪一個選項？",
-                    options: ["2⁸", "2¹²", "2¹⁶", "2²⁴", "2³²"],
-                    answer: "2¹⁶"
-                }
-            ],
+            '1': {
+                '1': { question: "已知 π 為圓周率，則與 √(10 + √10π) 最接近的整數為下列哪一個選項？", options: ["3", "4", "5", "6", "7"], answer: "4" },
+                '2': { question: "已知 n 為正整數，若有理數 15/n 可化為有限小數且滿足 1/4 ≤ 15/n ≤ 1/3，試求這樣的 n 值個數為下列哪一個選項？", options: ["1個", "2個", "3個", "4個", "5個"], answer: "3個" },
+                '3': { question: "已知 a = √5 - √2, b = √6 - √3, c = √2，試比較 a, b, c 的大小關係為下列哪一個選項？", options: ["a>b>c", "a>c>b", "b>c>a", "c>a>b", "c>b>a"], answer: "c>a>b" },
+                '4': { question: "試問下列各選項中的數，哪些是有理數？", options: ["0.9̄", "1/π", "-√3/√12", "0", "0.1010010001..."], answer: "0.9̄" }, // 註：多選題在此簡化為單選以利作答
+                'A': { question: "已知 a, b 為實數，若 |ax+1| ≤ b 的解為 -2 ≤ x ≤ 8，試求數對 (a, b)", options: ["(-1/3, 5/3)", "(1/3, -5/3)", "(2, 4)", "(-2, 4)"], answer: "(-1/3, 5/3)" },
+                'B': { question: "試求 0.18(循環) + 1.83(3循環) 之值。", options: ["133/66", "121/60", "2.02", "1.99"], answer: "133/66" },
+            },
+            '2': {
+                '1': { question: "試求 √(12+√95) - √(12-√95) 的正整數個數為下列哪一個選項?", options: ["3個", "4個", "5個", "6個", "7個"], answer: "3個" },
+                '2': { question: "利用乘法公式計算 7x9x(8²+1)(8⁴+1)(8⁸+1) = 2ⁿ-1，其中n為正整數，則n之值為下列哪一個選項？", options: ["16", "24", "36", "48", "96"], answer: "48" }
+            },
+            '3': {
+                 '1': { question: "將 x=√1234567 以科學記號表示為 x=a×10ⁿ，其中 1≤a<10，n為整數，試求n之值為下列哪一個選項？", options: ["1", "2", "3", "4", "6"], answer: "3" },
+                 '2': { question: "若在計算器中鍵入某正整數N，接著連按『√』鍵(取正平方根)3次，視窗顯示得到答案是4，則N等於下列哪一個選項？", options: ["2⁸", "2¹²", "2¹⁶", "2²⁴", "2³²"], answer: "2¹⁶" }
+            }
         };
 
         const homePage = document.getElementById('home-page');
         const quizPage = document.getElementById('quiz-page');
         const resultPage = document.getElementById('result-page');
         const startQuizBtn = document.getElementById('start-quiz-btn');
+        const submitBtn = document.getElementById('submit-btn');
         const errorMessage = document.getElementById('error-message');
         
-        let quizQuestions = [];
-        let userAnswers = [];
-        let currentQuestionIndex = 0;
+        let quizQuestions = []; // 會存放2個被選中的題目物件
+        let userAnswers = {}; // { questionId: answer }
         let timerInterval;
         let uploadedFile = null;
         let studentInfo = {};
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         startQuizBtn.addEventListener('click', () => {
             studentInfo = {
@@ -239,118 +209,89 @@
                 wrongQuestionNumbers: document.getElementById('wrongQuestions').value.trim()
             };
 
+            errorMessage.textContent = '';
             if (!studentInfo.class || !studentInfo.seatNumber || !studentInfo.name || !studentInfo.wrongQuestionNumbers) {
                 errorMessage.textContent = '所有欄位皆為必填！';
                 return;
             }
             
-            const wrongNumbers = studentInfo.wrongQuestionNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-            if(wrongNumbers.length === 0){
-                errorMessage.textContent = '請輸入有效的錯誤題號！';
+            const chapterQuestions = questionBank[studentInfo.chapter];
+            if (!chapterQuestions) {
+                errorMessage.textContent = `第 ${studentInfo.chapter} 回的題庫不存在。`;
                 return;
             }
 
-            const chapterQuestions = questionBank[studentInfo.chapter] || [];
-            if(chapterQuestions.length < 2){
-                errorMessage.textContent = '此章節題庫題目不足，無法出題。';
-                return;
-            }
-            
-            quizQuestions = [];
-            wrongNumbers.forEach(num => {
-                const shuffled = [...chapterQuestions].sort(() => 0.5 - Math.random());
-                // 確保不重複選取
-                let selected = shuffled.slice(0, 2);
-                quizQuestions.push(...selected);
-            });
-
-            // 去除可能重複的題目
-            quizQuestions = [...new Map(quizQuestions.map(item => [item['id'], item])).values()];
-            
-            // 隨機排列題目順序
-            quizQuestions.sort(() => 0.5 - Math.random());
-            
-            userAnswers = new Array(quizQuestions.length).fill(null);
-            
-            if(quizQuestions.length > 0) {
-                homePage.classList.add('hidden');
-                quizPage.classList.remove('hidden');
-                displayQuestion();
-                startTimer();
-            } else {
-                errorMessage.textContent = '根據您輸入的題號，無法產生測驗。請確認題庫中有足夠題目。';
-            }
-        });
-        
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-        }
-
-        function displayQuestion() {
-            const question = quizQuestions[currentQuestionIndex];
-            document.getElementById('question-text').textContent = `第 ${currentQuestionIndex + 1} 題: ${question.question}`;
-            
-            const optionsContainer = document.getElementById('options-container');
-            optionsContainer.innerHTML = '';
-
-            const shuffledOptions = [...question.options];
-            shuffleArray(shuffledOptions);
-
-            shuffledOptions.forEach(option => {
-                const optionId = `q${currentQuestionIndex}-option-${option}`;
-                const label = document.createElement('label');
-                label.htmlFor = optionId;
-                label.className = 'option-label';
-                label.textContent = option;
-                
-                if (userAnswers[currentQuestionIndex] === option) {
-                    label.classList.add('selected');
+            const requestedIds = studentInfo.wrongQuestionNumbers.split(',').map(id => id.trim().toUpperCase());
+            const validQuestions = requestedIds.map(id => {
+                if(chapterQuestions[id]) {
+                    // 將題號id附加到題目物件中，方便後續使用
+                    return { id: id, ...chapterQuestions[id] };
                 }
+                return null;
+            }).filter(q => q !== null);
+            
+            if (validQuestions.length < 2) {
+                errorMessage.textContent = '有效的錯誤題號不足2題，請至少輸入2個此回數中存在的題號。';
+                return;
+            }
 
-                const radio = document.createElement('input');
-                radio.type = 'radio';
-                radio.id = optionId;
-                radio.name = `question-${currentQuestionIndex}`;
-                radio.value = option;
-                radio.className = 'option-radio';
+            quizQuestions = shuffleArray(validQuestions).slice(0, 2);
+            userAnswers = {};
+            
+            homePage.classList.add('hidden');
+            quizPage.classList.remove('hidden');
+            displayQuiz();
+            startTimer();
+        });
 
-                radio.addEventListener('change', () => {
-                    userAnswers[currentQuestionIndex] = option;
-                    document.querySelectorAll(`.option-label`).forEach(l => l.classList.remove('selected'));
-                    label.classList.add('selected');
+        function displayQuiz() {
+            const container = document.getElementById('quiz-questions-container');
+            container.innerHTML = '';
+            
+            quizQuestions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                
+                const questionText = document.createElement('p');
+                questionText.className = 'text-2xl font-semibold mb-6 text-gray-800';
+                questionText.textContent = `第 ${index + 1} 題 (原題號: ${question.id}): ${question.question}`;
+                
+                const optionsContainer = document.createElement('div');
+                const shuffledOptions = shuffleArray([...question.options]);
+
+                shuffledOptions.forEach(option => {
+                    const optionId = `q${index}-option-${option.replace(/\s/g, '')}`;
+                    const label = document.createElement('label');
+                    label.htmlFor = optionId;
+                    label.className = 'option-label';
+                    label.textContent = option;
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.id = optionId;
+                    radio.name = `question-${index}`; // 確保兩題的選項群組是分開的
+                    radio.value = option;
+                    radio.className = 'option-radio';
+
+                    radio.addEventListener('change', () => {
+                        userAnswers[question.id] = option;
+                        // 更新選項視覺效果
+                        document.querySelectorAll(`input[name="question-${index}"]`).forEach(inp => {
+                            document.querySelector(`label[for="${inp.id}"]`).classList.remove('selected');
+                        });
+                        label.classList.add('selected');
+                    });
+                    
+                    optionsContainer.appendChild(radio);
+                    optionsContainer.appendChild(label);
                 });
                 
-                optionsContainer.appendChild(radio);
-                optionsContainer.appendChild(label);
+                questionDiv.appendChild(questionText);
+                questionDiv.appendChild(optionsContainer);
+                container.appendChild(questionDiv);
             });
-            
-            updateNavigation();
         }
-
-        function updateNavigation() {
-            document.getElementById('prev-btn').style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
-            document.getElementById('next-btn').style.display = currentQuestionIndex === quizQuestions.length - 1 ? 'none' : 'inline-block';
-            document.getElementById('submit-btn').style.display = currentQuestionIndex === quizQuestions.length - 1 ? 'inline-block' : 'none';
-        }
-
-        document.getElementById('next-btn').addEventListener('click', () => {
-            if (currentQuestionIndex < quizQuestions.length - 1) {
-                currentQuestionIndex++;
-                displayQuestion();
-            }
-        });
-
-        document.getElementById('prev-btn').addEventListener('click', () => {
-            if (currentQuestionIndex > 0) {
-                currentQuestionIndex--;
-                displayQuestion();
-            }
-        });
-
-        document.getElementById('submit-btn').addEventListener('click', submitQuiz);
+        
+        submitBtn.addEventListener('click', submitQuiz);
 
         document.getElementById('upload-work').addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -379,6 +320,7 @@
                 timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
+                    timerEl.textContent = "時間到！";
                     submitQuiz();
                 }
             }, 1000);
@@ -387,8 +329,8 @@
         function submitQuiz() {
             clearInterval(timerInterval);
             let score = 0;
-            quizQuestions.forEach((q, index) => {
-                if (q.answer === userAnswers[index]) {
+            quizQuestions.forEach((q) => {
+                if (q.answer === userAnswers[q.id]) {
                     score += 5;
                 }
             });
@@ -402,18 +344,18 @@
             const detailsContainer = document.getElementById('result-details');
             detailsContainer.innerHTML = '';
             quizQuestions.forEach((q, index) => {
-                const isCorrect = q.answer === userAnswers[index];
+                const userAnswer = userAnswers[q.id];
+                const isCorrect = q.answer === userAnswer;
                 const resultDiv = document.createElement('div');
                 resultDiv.className = `p-4 rounded-lg ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`;
                 resultDiv.innerHTML = `
-                    <p class="font-bold text-lg mb-2">第 ${index + 1} 題: ${q.question}</p>
-                    <p>你的答案: <span class="font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}">${userAnswers[index] || '未作答'}</span></p>
+                    <p class="font-bold text-lg mb-2">第 ${index + 1} 題 (原題號: ${q.id}): ${q.question}</p>
+                    <p>你的答案: <span class="font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}">${userAnswer || '未作答'}</span></p>
                     <p>正確答案: <span class="font-semibold text-blue-700">${q.answer}</span></p>
                 `;
                 detailsContainer.appendChild(resultDiv);
             });
             
-            // Post data to Google Apps Script
             postDataToSheet(score);
         }
         
@@ -433,19 +375,19 @@
                 };
                 
                 try {
-                    const response = await fetch(gasWebAppUrl, {
+                    // GAS Web App in 'no-cors' mode does not return a proper response object
+                    // to the client-side fetch. So we send it and assume it works.
+                    // The actual success/error is handled in the GAS script itself.
+                    fetch(gasWebAppUrl, {
                         method: 'POST',
-                        mode: 'no-cors', // Important for sending data to GAS from client-side
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        mode: 'no-cors', 
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                     // Since mode is 'no-cors', we can't read the response. We assume success.
                     console.log('Data submission initiated.');
                     document.getElementById('submit-success-message').classList.remove('hidden');
                 } catch (error) {
-                    console.error('Error submitting data:', error);
+                    console.error('Error initiating data submission:', error);
                     alert("提交失敗，請檢查網路連線或聯繫老師。");
                 } finally {
                      document.getElementById('loading-spinner').classList.add('hidden');
@@ -453,39 +395,33 @@
             } else {
                  console.warn("尚未設定 Google Apps Script URL。資料不會被傳送。");
             }
-           
         }
 
-        // Download functions
         const { jsPDF } = window.jspdf;
         document.getElementById('download-pdf-btn').addEventListener('click', () => {
-            const doc = new jsPDF();
             const resultContainer = document.getElementById('result-page');
-            
             html2canvas(resultContainer).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
-                const imgProps= doc.getImageProperties(imgData);
-                const pdfWidth = doc.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                doc.save(`${studentInfo.name}_${studentInfo.class}_${studentInfo.seatNumber}_測驗結果.pdf`);
+                const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [canvas.width, canvas.height]});
+                pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`${studentInfo.name}_${studentInfo.class}_${studentInfo.seatNumber}_測驗結果.pdf`);
             });
         });
 
         document.getElementById('download-csv-btn').addEventListener('click', () => {
-            const csvData = quizQuestions.map((q, index) => ({
+            const csvData = quizQuestions.map((q) => ({
                 '班級': studentInfo.class,
                 '座號': studentInfo.seatNumber,
                 '姓名': studentInfo.name,
-                '題號': index + 1,
+                '原題號': q.id,
                 '題目': q.question,
-                '你的答案': userAnswers[index] || '未作答',
+                '你的答案': userAnswers[q.id] || '未作答',
                 '正確答案': q.answer,
-                '是否正確': q.answer === userAnswers[index] ? '是' : '否'
+                '是否正確': q.answer === userAnswers[q.id] ? '是' : '否'
             }));
 
             const csv = Papa.unparse(csvData);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }); // \uFEFF for BOM
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
@@ -499,3 +435,4 @@
     </script>
 </body>
 </html>
+
