@@ -99,9 +99,9 @@
                  <div>
                     <label for="wrongQuestions" class="text-lg font-semibold text-gray-700 mb-2 block">
                         輸入要訂正的題目編號 (用逗號分隔)<br>
-                        <span class="text-sm text-gray-500">單選/多選: 1, 2... | 填充: A, B... | 混合: 四.1...</span>
+                        <span class="text-sm text-gray-500">單選/多選: 1, 2... | 填充: A, B... | 混合: 四.1, 四.2...</span>
                     </label>
-                    <input type="text" id="wrongQuestions" class="input-macaron" placeholder="例如：1, 5, A, 四.1">
+                    <input type="text" id="wrongQuestions" class="input-macaron" placeholder="範例：1, 5, A, 四.1">
                 </div>
             </div>
 
@@ -159,15 +159,18 @@
 
     <script>
         // 題庫範例：key是章節，value是該章節所有題目的物件
-        // 物件的 key 是學生輸入的題號 (1, 2, A, B...)
+        // **重要**：物件的 key 必須和學生輸入的題號格式完全一致 (大小寫會自動轉換)
         const questionBank = {
             '1': {
                 '1': { question: "已知 π 為圓周率，則與 √(10 + √10π) 最接近的整數為下列哪一個選項？", options: ["3", "4", "5", "6", "7"], answer: "4" },
                 '2': { question: "已知 n 為正整數，若有理數 15/n 可化為有限小數且滿足 1/4 ≤ 15/n ≤ 1/3，試求這樣的 n 值個數為下列哪一個選項？", options: ["1個", "2個", "3個", "4個", "5個"], answer: "3個" },
                 '3': { question: "已知 a = √5 - √2, b = √6 - √3, c = √2，試比較 a, b, c 的大小關係為下列哪一個選項？", options: ["a>b>c", "a>c>b", "b>c>a", "c>a>b", "c>b>a"], answer: "c>a>b" },
-                '4': { question: "試問下列各選項中的數，哪些是有理數？", options: ["0.9̄", "1/π", "-√3/√12", "0", "0.1010010001..."], answer: "0.9̄" }, // 註：多選題在此簡化為單選以利作答
+                '4': { question: "試問下列各選項中的數，哪些是有理數？", options: ["0.9̄", "1/π", "-√3/√12", "0", "0.1010010001..."], answer: "0.9̄" },
+                '5': { question: "設兩實數 x, y 滿足 |x|=4 與 |y+3|=2, 試求 x+y 的值可能為下列哪些選項?", options: ["3", "-1", "-3", "-5", "-9"], answer: "-1"},
                 'A': { question: "已知 a, b 為實數，若 |ax+1| ≤ b 的解為 -2 ≤ x ≤ 8，試求數對 (a, b)", options: ["(-1/3, 5/3)", "(1/3, -5/3)", "(2, 4)", "(-2, 4)"], answer: "(-1/3, 5/3)" },
                 'B': { question: "試求 0.18(循環) + 1.83(3循環) 之值。", options: ["133/66", "121/60", "2.02", "1.99"], answer: "133/66" },
+                '四.1': { question: "設 P(-2), Q(4) 為數線上相異三點，且 R 點落在 PQ 線段上，試求 R 點的 r 坐標範圍以區間符號表示為何？", options: ["[-2, 4]", "(-2, 4)", "[-2, 4)", "(-2, 4]"], answer: "[-2, 4]" },
+                '四.2': { question: "設 P(-2), Q(4) 為數線上兩點, 則下列哪些選項能在數線上找到x值滿足方程式 |x - (-2)| + |x - 4| = 5?", options: ["x=3.5", "x=-1.5", "x=5", "x=-3"], answer: "x=3.5"}
             },
             '2': {
                 '1': { question: "試求 √(12+√95) - √(12-√95) 的正整數個數為下列哪一個選項?", options: ["3個", "4個", "5個", "6個", "7個"], answer: "3個" },
@@ -186,8 +189,8 @@
         const submitBtn = document.getElementById('submit-btn');
         const errorMessage = document.getElementById('error-message');
         
-        let quizQuestions = []; // 會存放2個被選中的題目物件
-        let userAnswers = {}; // { questionId: answer }
+        let quizQuestions = [];
+        let userAnswers = {};
         let timerInterval;
         let uploadedFile = null;
         let studentInfo = {};
@@ -206,7 +209,7 @@
                 seatNumber: document.getElementById('seatNumber').value.trim(),
                 name: document.getElementById('name').value.trim(),
                 chapter: document.getElementById('chapter').value,
-                wrongQuestionNumbers: document.getElementById('wrongQuestions').value.trim()
+                wrongQuestionNumbers: document.getElementById('wrongQuestions').value
             };
 
             errorMessage.textContent = '';
@@ -220,22 +223,31 @@
                 errorMessage.textContent = `第 ${studentInfo.chapter} 回的題庫不存在。`;
                 return;
             }
+            
+            const normalizedInput = studentInfo.wrongQuestionNumbers
+                .replace(/，/g, ',')
+                .replace(/．/g, '.');
 
-            const requestedIds = studentInfo.wrongQuestionNumbers.split(',').map(id => id.trim().toUpperCase());
+            const requestedIds = normalizedInput.split(',').map(id => 
+                id.trim().toUpperCase()
+            ).filter(id => id);
+
             const validQuestions = requestedIds.map(id => {
                 if(chapterQuestions[id]) {
-                    // 將題號id附加到題目物件中，方便後續使用
                     return { id: id, ...chapterQuestions[id] };
                 }
                 return null;
             }).filter(q => q !== null);
             
-            if (validQuestions.length < 2) {
-                errorMessage.textContent = '有效的錯誤題號不足2題，請至少輸入2個此回數中存在的題號。';
+            // **修改1: 只要有1題以上就可以測驗**
+            if (validQuestions.length < 1) {
+                errorMessage.textContent = '有效的錯誤題號不足1題，請檢查輸入的題號是否正確、且存在於該回數題庫中。';
                 return;
             }
 
-            quizQuestions = shuffleArray(validQuestions).slice(0, 2);
+            // 如果只有1題就考1題，如果多於1題就隨機抽2題
+            const questionsToTake = validQuestions.length === 1 ? 1 : 2;
+            quizQuestions = shuffleArray(validQuestions).slice(0, questionsToTake);
             userAnswers = {};
             
             homePage.classList.add('hidden');
@@ -247,34 +259,36 @@
         function displayQuiz() {
             const container = document.getElementById('quiz-questions-container');
             container.innerHTML = '';
+            const optionLetters = ['(A)', '(B)', '(C)', '(D)', '(E)'];
             
             quizQuestions.forEach((question, index) => {
                 const questionDiv = document.createElement('div');
                 
                 const questionText = document.createElement('p');
                 questionText.className = 'text-2xl font-semibold mb-6 text-gray-800';
-                questionText.textContent = `第 ${index + 1} 題 (原題號: ${question.id}): ${question.question}`;
+                // **修改3: 不顯示原題號**
+                questionText.textContent = `第 ${index + 1} 題: ${question.question}`;
                 
                 const optionsContainer = document.createElement('div');
                 const shuffledOptions = shuffleArray([...question.options]);
 
-                shuffledOptions.forEach(option => {
+                // **修改2: 顯示選項標示 (A), (B)...**
+                shuffledOptions.forEach((option, optionIndex) => {
                     const optionId = `q${index}-option-${option.replace(/\s/g, '')}`;
                     const label = document.createElement('label');
                     label.htmlFor = optionId;
                     label.className = 'option-label';
-                    label.textContent = option;
+                    label.textContent = `${optionLetters[optionIndex]} ${option}`;
 
                     const radio = document.createElement('input');
                     radio.type = 'radio';
                     radio.id = optionId;
-                    radio.name = `question-${index}`; // 確保兩題的選項群組是分開的
-                    radio.value = option;
+                    radio.name = `question-${index}`;
+                    radio.value = option; // radio 的 value 保持為原始答案，以便核對
                     radio.className = 'option-radio';
 
                     radio.addEventListener('change', () => {
                         userAnswers[question.id] = option;
-                        // 更新選項視覺效果
                         document.querySelectorAll(`input[name="question-${index}"]`).forEach(inp => {
                             document.querySelector(`label[for="${inp.id}"]`).classList.remove('selected');
                         });
@@ -311,7 +325,7 @@
         });
 
         function startTimer() {
-            let timeLeft = 10 * 60; // 10 minutes
+            let timeLeft = 10 * 60;
             const timerEl = document.getElementById('timer');
             timerInterval = setInterval(() => {
                 timeLeft--;
@@ -349,9 +363,10 @@
                 const resultDiv = document.createElement('div');
                 resultDiv.className = `p-4 rounded-lg ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`;
                 resultDiv.innerHTML = `
-                    <p class="font-bold text-lg mb-2">第 ${index + 1} 題 (原題號: ${q.id}): ${q.question}</p>
+                    <p class="font-bold text-lg mb-2">第 ${index + 1} 題: ${q.question}</p>
                     <p>你的答案: <span class="font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}">${userAnswer || '未作答'}</span></p>
                     <p>正確答案: <span class="font-semibold text-blue-700">${q.answer}</span></p>
+                    <p class="text-sm text-gray-600">(原試卷題號: ${q.id})</p>
                 `;
                 detailsContainer.appendChild(resultDiv);
             });
@@ -360,10 +375,9 @@
         }
         
         async function postDataToSheet(score) {
-            // *** 重要：請將下面的 URL 換成您自己的 Google Apps Script Web App URL ***
-            const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbxvjT90_nCnTlhW0DJwYzPVaHVQEM8-VvZYjbkIiAnq3ZowP5UT_ZGUFdImPOoQ4bY/exec'; // 範例 URL，請務必替換
+            const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbxvjT90_nCnTlhW0DJwYzPVaHVQEM8-VvZYjbkIiAnq3ZowP5UT_ZGUFdImPOoQ4bY/exec'; 
             
-            if (gasWebAppUrl.includes('AKfyc')) {
+            if (gasWebAppUrl.includes('AKfyc') || gasWebAppUrl.includes('macros/s')) {
                  document.getElementById('loading-spinner').classList.remove('hidden');
             
                 const payload = {
@@ -375,9 +389,6 @@
                 };
                 
                 try {
-                    // GAS Web App in 'no-cors' mode does not return a proper response object
-                    // to the client-side fetch. So we send it and assume it works.
-                    // The actual success/error is handled in the GAS script itself.
                     fetch(gasWebAppUrl, {
                         method: 'POST',
                         mode: 'no-cors', 
@@ -421,7 +432,7 @@
             }));
 
             const csv = Papa.unparse(csvData);
-            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' }); // \uFEFF for BOM
+            const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
@@ -431,8 +442,9 @@
             link.click();
             document.body.removeChild(link);
         });
-
     </script>
 </body>
 </html>
+
+
 
