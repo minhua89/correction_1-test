@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高一訂正測驗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', 'Arial', '微軟正黑體', sans-serif;
+        }
+        .macaron-pink { background-color: #f8e0e0; }
+        .macaron-blue { background-color: #d4e4f7; }
+        .macaron-green { background-color: #d4f7e4; }
+        .macaron-yellow { background-color: #f7f4d4; }
+        .btn-macaron {
+            background-color: #a7c7e7; /* Pastel blue */
+            color: white;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-macaron:hover {
+            background-color: #8bb1d6;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .input-macaron {
+            border: 2px solid #a7c7e7;
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        .input-macaron:focus {
+            outline: none;
+            border-color: #8bb1d6;
+            box-shadow: 0 0 0 3px rgba(167, 199, 231, 0.5);
+        }
+        .option-label {
+            display: block;
+            padding: 15px;
+            border: 2px solid #d4e4f7;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+        }
+        .option-label:hover {
+            background-color: #e6eff9;
+        }
+        .option-label.selected {
+            background-color: #a7c7e7;
+            color: white;
+            border-color: #8bb1d6;
+        }
+        .option-radio {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-macaron-yellow min-h-screen flex items-center justify-center p-4">
+
+    <div id="app-container" class="w-full max-w-4xl mx-auto">
+        
+        <!-- 首頁 -->
+        <div id="home-page" class="bg-white p-8 md:p-12 rounded-3xl shadow-xl transition-all duration-500">
+            <h1 class="text-4xl md:text-5xl font-bold text-center mb-8 text-[#6A8EAE]">高一訂正測驗</h1>
+            
+            <div class="space-y-6">
+                <div>
+                    <label for="class" class="text-lg font-semibold text-gray-700 mb-2 block">班級</label>
+                    <input type="text" id="class" class="input-macaron" placeholder="例如：101">
+                </div>
+                <div>
+                    <label for="seatNumber" class="text-lg font-semibold text-gray-700 mb-2 block">座號</label>
+                    <input type="text" id="seatNumber" class="input-macaron" placeholder="例如：01">
+                </div>
+                <div>
+                    <label for="name" class="text-lg font-semibold text-gray-700 mb-2 block">姓名</label>
+                    <input type="text" id="name" class="input-macaron" placeholder="請輸入姓名">
+                </div>
+                <div>
+                    <label for="chapter" class="text-lg font-semibold text-gray-700 mb-2 block">選擇測驗回數</label>
+                    <select id="chapter" class="input-macaron">
+                        <option value="1">第 1 回</option>
+                        <option value="2">第 2 回</option>
+                        <option value="3">第 3 回</option>
+                        <!-- 可以在這裡繼續新增到14回 -->
+                    </select>
+                </div>
+                 <div>
+                    <label for="wrongQuestions" class="text-lg font-semibold text-gray-700 mb-2 block">輸入錯誤的題號 (用逗號分隔)</label>
+                    <input type="text" id="wrongQuestions" class="input-macaron" placeholder="例如：1, 5, 8">
+                </div>
+            </div>
+
+            <div class="text-center mt-10">
+                <button id="start-quiz-btn" class="btn-macaron text-2xl">開始測驗</button>
+            </div>
+             <p id="error-message" class="text-red-500 text-center mt-4 font-bold"></p>
+        </div>
+
+        <!-- 測驗頁面 -->
+        <div id="quiz-page" class="hidden bg-white p-8 md:p-12 rounded-3xl shadow-xl transition-all duration-500">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl md:text-3xl font-bold text-[#6A8EAE]">測驗進行中</h2>
+                <div id="timer" class="text-2xl font-bold text-red-500 bg-macaron-pink px-4 py-2 rounded-lg">10:00</div>
+            </div>
+            
+            <div id="question-container" class="mb-8">
+                <p id="question-text" class="text-2xl font-semibold mb-6 text-gray-800"></p>
+                <div id="options-container"></div>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <label for="upload-work" class="btn-macaron bg-macaron-green text-white hover:bg-green-400">拍照上傳作答過程</label>
+                    <input type="file" id="upload-work" class="hidden" accept="image/*">
+                    <span id="upload-status" class="ml-4 text-gray-600">尚未上傳</span>
+                </div>
+                <div>
+                    <button id="prev-btn" class="btn-macaron mr-4">上一題</button>
+                    <button id="next-btn" class="btn-macaron">下一題</button>
+                    <button id="submit-btn" class="btn-macaron bg-red-500 hover:bg-red-600 hidden ml-4">繳交</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結果頁面 -->
+        <div id="result-page" class="hidden bg-white p-8 md:p-12 rounded-3xl shadow-xl transition-all duration-500">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-4 text-[#6A8EAE]">測驗結果</h2>
+            <p id="result-info" class="text-center text-xl text-gray-700 mb-2"></p>
+            <p id="result-score" class="text-center text-5xl font-bold text-green-500 mb-8"></p>
+
+            <div id="result-details" class="space-y-6 border-t-2 border-gray-200 pt-6"></div>
+
+            <div class="text-center mt-10 space-x-4">
+                <button id="download-pdf-btn" class="btn-macaron">下載 PDF</button>
+                <button id="download-csv-btn" class="btn-macaron">下載 CSV</button>
+            </div>
+             <div id="loading-spinner" class="hidden text-center mt-4">
+                <p class="text-lg font-semibold text-gray-600">正在提交您的作答紀錄，請稍候...</p>
+                <svg class="animate-spin h-8 w-8 text-[#a7c7e7] mx-auto mt-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+             <p id="submit-success-message" class="hidden text-green-600 text-center mt-4 font-bold">作答紀錄已成功上傳！</p>
+
+        </div>
+    </div>
+
+    <script>
+        const questionBank = {
+            '1': [
+                {
+                    id: 1,
+                    question: "已知 π 為圓周率，則與 √(10 + √10π) 最接近的整數為下列哪一個選項？",
+                    options: ["3", "4", "5", "6", "7"],
+                    answer: "4"
+                },
+                {
+                    id: 2,
+                    question: "已知 n 為正整數，若有理數 15/n 可化為有限小數且滿足 1/4 ≤ 15/n ≤ 1/3，試求這樣的 n 值個數為下列哪一個選項？",
+                    options: ["1個", "2個", "3個", "4個", "5個"],
+                    answer: "3個"
+                },
+                {
+                    id: 3,
+                    question: "已知 a = √5 - √2, b = √6 - √3, c = √2，試比較 a, b, c 的大小關係為下列哪一個選項？",
+                    options: ["a>b>c", "a>c>b", "b>c>a", "c>a>b", "c>b>a"],
+                    answer: "c>a>b"
+                },
+                 {
+                    id: 4,
+                    question: "試問下列各選項中的數，哪些是有理數？",
+                    options: ["0.9̄", "1/π", "-√3/√12", "0", "0.1010010001..."],
+                    answer: ["0.9̄", "-√3/√12", "0"] // 這是多選題的範例，但我們這裡當單選處理
+                }
+            ],
+            '2': [
+                {
+                    id: 1,
+                    question: "試求 √(12+√95) - √(12-√95) 的正整數個數為下列哪一個選項?",
+                    options: ["3個", "4個", "5個", "6個", "7個"],
+                    answer: "3個"
+                },
+                {
+                    id: 2,
+                    question: "利用乘法公式計算 7x9x(8²+1)(8⁴+1)(8⁸+1) = 2ⁿ-1，其中n為正整數，則n之值為下列哪一個選項？",
+                    options: ["16", "24", "36", "48", "96"],
+                    answer: "48"
+                }
+            ],
+             '3': [
+                {
+                    id: 1,
+                    question: "將 x=√1234567 以科學記號表示為 x=a×10ⁿ，其中 1≤a<10，n為整數，試求n之值為下列哪一個選項？",
+                    options: ["1", "2", "3", "4", "6"],
+                    answer: "3"
+                },
+                {
+                    id: 2,
+                    question: "若在計算器中鍵入某正整數N，接著連按『√』鍵(取正平方根)3次，視窗顯示得到答案是4，則N等於下列哪一個選項？",
+                    options: ["2⁸", "2¹²", "2¹⁶", "2²⁴", "2³²"],
+                    answer: "2¹⁶"
+                }
+            ],
+        };
+
+        const homePage = document.getElementById('home-page');
+        const quizPage = document.getElementById('quiz-page');
+        const resultPage = document.getElementById('result-page');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        const errorMessage = document.getElementById('error-message');
+        
+        let quizQuestions = [];
+        let userAnswers = [];
+        let currentQuestionIndex = 0;
+        let timerInterval;
+        let uploadedFile = null;
+        let studentInfo = {};
+
+        startQuizBtn.addEventListener('click', () => {
+            studentInfo = {
+                class: document.getElementById('class').value.trim(),
+                seatNumber: document.getElementById('seatNumber').value.trim(),
+                name: document.getElementById('name').value.trim(),
+                chapter: document.getElementById('chapter').value,
+                wrongQuestionNumbers: document.getElementById('wrongQuestions').value.trim()
+            };
+
+            if (!studentInfo.class || !studentInfo.seatNumber || !studentInfo.name || !studentInfo.wrongQuestionNumbers) {
+                errorMessage.textContent = '所有欄位皆為必填！';
+                return;
+            }
+            
+            const wrongNumbers = studentInfo.wrongQuestionNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+            if(wrongNumbers.length === 0){
+                errorMessage.textContent = '請輸入有效的錯誤題號！';
+                return;
+            }
+
+            const chapterQuestions = questionBank[studentInfo.chapter] || [];
+            if(chapterQuestions.length < 2){
+                errorMessage.textContent = '此章節題庫題目不足，無法出題。';
+                return;
+            }
+            
+            quizQuestions = [];
+            wrongNumbers.forEach(num => {
+                const shuffled = [...chapterQuestions].sort(() => 0.5 - Math.random());
+                // 確保不重複選取
+                let selected = shuffled.slice(0, 2);
+                quizQuestions.push(...selected);
+            });
+
+            // 去除可能重複的題目
+            quizQuestions = [...new Map(quizQuestions.map(item => [item['id'], item])).values()];
+            
+            // 隨機排列題目順序
+            quizQuestions.sort(() => 0.5 - Math.random());
+            
+            userAnswers = new Array(quizQuestions.length).fill(null);
+            
+            if(quizQuestions.length > 0) {
+                homePage.classList.add('hidden');
+                quizPage.classList.remove('hidden');
+                displayQuestion();
+                startTimer();
+            } else {
+                errorMessage.textContent = '根據您輸入的題號，無法產生測驗。請確認題庫中有足夠題目。';
+            }
+        });
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function displayQuestion() {
+            const question = quizQuestions[currentQuestionIndex];
+            document.getElementById('question-text').textContent = `第 ${currentQuestionIndex + 1} 題: ${question.question}`;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            const shuffledOptions = [...question.options];
+            shuffleArray(shuffledOptions);
+
+            shuffledOptions.forEach(option => {
+                const optionId = `q${currentQuestionIndex}-option-${option}`;
+                const label = document.createElement('label');
+                label.htmlFor = optionId;
+                label.className = 'option-label';
+                label.textContent = option;
+                
+                if (userAnswers[currentQuestionIndex] === option) {
+                    label.classList.add('selected');
+                }
+
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.id = optionId;
+                radio.name = `question-${currentQuestionIndex}`;
+                radio.value = option;
+                radio.className = 'option-radio';
+
+                radio.addEventListener('change', () => {
+                    userAnswers[currentQuestionIndex] = option;
+                    document.querySelectorAll(`.option-label`).forEach(l => l.classList.remove('selected'));
+                    label.classList.add('selected');
+                });
+                
+                optionsContainer.appendChild(radio);
+                optionsContainer.appendChild(label);
+            });
+            
+            updateNavigation();
+        }
+
+        function updateNavigation() {
+            document.getElementById('prev-btn').style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
+            document.getElementById('next-btn').style.display = currentQuestionIndex === quizQuestions.length - 1 ? 'none' : 'inline-block';
+            document.getElementById('submit-btn').style.display = currentQuestionIndex === quizQuestions.length - 1 ? 'inline-block' : 'none';
+        }
+
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentQuestionIndex < quizQuestions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        });
+
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        });
+
+        document.getElementById('submit-btn').addEventListener('click', submitQuiz);
+
+        document.getElementById('upload-work').addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedFile = {
+                        name: file.name,
+                        type: file.type,
+                        data: e.target.result.split(',')[1] // Base64 data
+                    };
+                    document.getElementById('upload-status').textContent = `已上傳: ${file.name}`;
+                    document.getElementById('upload-status').classList.add('text-green-600');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function startTimer() {
+            let timeLeft = 10 * 60; // 10 minutes
+            const timerEl = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInterval);
+            let score = 0;
+            quizQuestions.forEach((q, index) => {
+                if (q.answer === userAnswers[index]) {
+                    score += 5;
+                }
+            });
+
+            quizPage.classList.add('hidden');
+            resultPage.classList.remove('hidden');
+
+            document.getElementById('result-info').textContent = `${studentInfo.class}班 ${studentInfo.seatNumber}號 ${studentInfo.name}`;
+            document.getElementById('result-score').textContent = `${score} / ${quizQuestions.length * 5} 分`;
+
+            const detailsContainer = document.getElementById('result-details');
+            detailsContainer.innerHTML = '';
+            quizQuestions.forEach((q, index) => {
+                const isCorrect = q.answer === userAnswers[index];
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `p-4 rounded-lg ${isCorrect ? 'bg-green-100' : 'bg-red-100'}`;
+                resultDiv.innerHTML = `
+                    <p class="font-bold text-lg mb-2">第 ${index + 1} 題: ${q.question}</p>
+                    <p>你的答案: <span class="font-semibold ${isCorrect ? 'text-green-700' : 'text-red-700'}">${userAnswers[index] || '未作答'}</span></p>
+                    <p>正確答案: <span class="font-semibold text-blue-700">${q.answer}</span></p>
+                `;
+                detailsContainer.appendChild(resultDiv);
+            });
+            
+            // Post data to Google Apps Script
+            postDataToSheet(score);
+        }
+        
+        async function postDataToSheet(score) {
+            // *** 重要：請將下面的 URL 換成您自己的 Google Apps Script Web App URL ***
+            const gasWebAppUrl = 'https://script.google.com/macros/s/AKfycbxvjT90_nCnTlhW0DJwYzPVaHVQEM8-VvZYjbkIiAnq3ZowP5UT_ZGUFdImPOoQ4bY/exec'; // 範例 URL，請務必替換
+            
+            if (gasWebAppUrl.includes('AKfyc')) {
+                 document.getElementById('loading-spinner').classList.remove('hidden');
+            
+                const payload = {
+                    ...studentInfo,
+                    score: score,
+                    totalScore: quizQuestions.length * 5,
+                    timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }),
+                    uploadedFile: uploadedFile
+                };
+                
+                try {
+                    const response = await fetch(gasWebAppUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // Important for sending data to GAS from client-side
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                     // Since mode is 'no-cors', we can't read the response. We assume success.
+                    console.log('Data submission initiated.');
+                    document.getElementById('submit-success-message').classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error submitting data:', error);
+                    alert("提交失敗，請檢查網路連線或聯繫老師。");
+                } finally {
+                     document.getElementById('loading-spinner').classList.add('hidden');
+                }
+            } else {
+                 console.warn("尚未設定 Google Apps Script URL。資料不會被傳送。");
+            }
+           
+        }
+
+        // Download functions
+        const { jsPDF } = window.jspdf;
+        document.getElementById('download-pdf-btn').addEventListener('click', () => {
+            const doc = new jsPDF();
+            const resultContainer = document.getElementById('result-page');
+            
+            html2canvas(resultContainer).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgProps= doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                doc.save(`${studentInfo.name}_${studentInfo.class}_${studentInfo.seatNumber}_測驗結果.pdf`);
+            });
+        });
+
+        document.getElementById('download-csv-btn').addEventListener('click', () => {
+            const csvData = quizQuestions.map((q, index) => ({
+                '班級': studentInfo.class,
+                '座號': studentInfo.seatNumber,
+                '姓名': studentInfo.name,
+                '題號': index + 1,
+                '題目': q.question,
+                '你的答案': userAnswers[index] || '未作答',
+                '正確答案': q.answer,
+                '是否正確': q.answer === userAnswers[index] ? '是' : '否'
+            }));
+
+            const csv = Papa.unparse(csvData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${studentInfo.name}_${studentInfo.class}_${studentInfo.seatNumber}_測驗結果.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+    </script>
+</body>
+</html>
